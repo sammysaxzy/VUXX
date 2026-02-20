@@ -22,10 +22,12 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS infra_nodes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('mst', 'closure', 'distribution', 'client', 'splitter')),
+  type TEXT NOT NULL CHECK (type IN ('olt', 'mst', 'closure', 'distribution', 'client', 'splitter')),
   name TEXT NOT NULL,
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
+  area TEXT NOT NULL DEFAULT '',
+  olt_id UUID REFERENCES infra_nodes(id) ON DELETE SET NULL,
   status TEXT NOT NULL CHECK (status IN ('planned', 'installed', 'active', 'faulty', 'maintenance')),
   metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -93,13 +95,38 @@ WHERE status IN ('active', 'reserved');
 CREATE TABLE IF NOT EXISTS customers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  full_name TEXT NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
   phone TEXT,
   address TEXT,
-  mst_node_id UUID REFERENCES infra_nodes(id) ON DELETE SET NULL,
-  splitter_leg_id UUID REFERENCES splitter_legs(id) ON DELETE SET NULL,
-  core_id UUID REFERENCES cable_cores(id) ON DELETE SET NULL,
-  install_status TEXT NOT NULL DEFAULT 'planned' CHECK (install_status IN ('planned', 'installed', 'active', 'suspended')),
+  plan TEXT NOT NULL CHECK (plan IN ('Home 40Mbps', 'Biz 60Mbps', 'Biz 100Mbps', 'Enterprise 200Mbps')),
+  account_status TEXT NOT NULL CHECK (account_status IN ('active', 'suspended')),
+  payment_status TEXT NOT NULL CHECK (payment_status IN ('paid', 'overdue')),
+  mst_id UUID REFERENCES infra_nodes(id) ON DELETE SET NULL,
+  node_id UUID REFERENCES infra_nodes(id) ON DELETE SET NULL,
+  latitude DOUBLE PRECISION NOT NULL,
+  longitude DOUBLE PRECISION NOT NULL,
+  cpe_photo TEXT,
+  mst_photo TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS radius_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  customer_id UUID,
+  username TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL CHECK (status IN ('inactive', 'active', 'suspended')) DEFAULT 'inactive',
+  bandwidth TEXT NOT NULL DEFAULT '0 / 0 Mbps',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS activity_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

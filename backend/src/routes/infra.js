@@ -1,6 +1,6 @@
 import express from "express";
 import { z } from "zod";
-import { pool, query } from "../db.js";
+import { pool, query } from "../config/db.js";
 import { CORE_COLORS } from "../constants.js";
 
 const router = express.Router();
@@ -47,16 +47,6 @@ const assignLegSchema = z.object({
   status: z.enum(["used", "reserved"]).default("used")
 });
 
-const customerSchema = z.object({
-  fullName: z.string().min(2),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  mstNodeId: z.string().uuid().optional(),
-  splitterLegId: z.string().uuid().optional(),
-  coreId: z.string().uuid().optional(),
-  installStatus: z.enum(["planned", "installed", "active", "suspended"]).default("planned")
-});
-
 const faultSchema = z.object({
   targetType: z.enum(["node", "cable", "core", "splitter", "customer"]),
   targetId: z.string().uuid(),
@@ -75,7 +65,8 @@ function emitTenantEvent(req, event, payload) {
 router.get("/nodes", async (req, res) => {
   const tenantId = getTenantId(req);
   const result = await query(
-    `SELECT id, type, name, latitude, longitude, status, metadata, created_at, updated_at
+    `SELECT id, type, name, latitude, longitude, status, metadata, area, olt_id,
+            created_at, updated_at
      FROM infra_nodes WHERE tenant_id = $1 ORDER BY created_at DESC`,
     [tenantId]
   );
@@ -570,42 +561,6 @@ router.patch("/splitter-legs/:id/assign-core", async (req, res) => {
   } finally {
     client.release();
   }
-});
-
-router.post("/customers", async (req, res) => {
-  const parsed = customerSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: parsed.error.flatten() });
-  }
-
-  const tenantId = getTenantId(req);
-  const data = parsed.data;
-  const result = await query(
-    `INSERT INTO customers (tenant_id, full_name, phone, address, mst_node_id, splitter_leg_id, core_id, install_status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING *`,
-    [
-      tenantId,
-      data.fullName,
-      data.phone || null,
-      data.address || null,
-      data.mstNodeId || null,
-      data.splitterLegId || null,
-      data.coreId || null,
-      data.installStatus
-    ]
-  );
-  emitTenantEvent(req, "customer.created", result.rows[0]);
-  res.status(201).json(result.rows[0]);
-});
-
-router.get("/customers", async (req, res) => {
-  const tenantId = getTenantId(req);
-  const result = await query(
-    `SELECT * FROM customers WHERE tenant_id = $1 ORDER BY created_at DESC`,
-    [tenantId]
-  );
-  res.json(result.rows);
 });
 
 router.post("/faults", async (req, res) => {

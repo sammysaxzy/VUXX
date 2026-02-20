@@ -1,26 +1,41 @@
 import jwt from "jsonwebtoken";
 
-export function requireAuth(req, res, next) {
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET must be set");
+}
+
+function httpError(status, message) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+export function requireAuth(req, _res, next) {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token) {
-    return res.status(401).json({ error: "Missing bearer token" });
+    return next(httpError(401, "Missing bearer token"));
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload;
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.user = {
+      id: payload.sub,
+      role: payload.role,
+      tenantId: payload.tenantId
+    };
     return next();
   } catch (error) {
-    return res.status(401).json({ error: "Invalid token" });
+    return next(httpError(401, "Invalid token"));
   }
 }
 
 export function requireRole(...allowedRoles) {
-  return (req, res, next) => {
+  return (req, _res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: "Forbidden" });
+      return next(httpError(403, "Forbidden"));
     }
     return next();
   };
