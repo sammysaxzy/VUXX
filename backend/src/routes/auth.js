@@ -2,7 +2,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
-import { pool, query } from "../db.js";
+import { pool, query } from "../config/db.js";
 
 const router = express.Router();
 
@@ -53,7 +53,7 @@ router.post("/register", async (req, res) => {
 
     const userResult = await client.query(
       `INSERT INTO users (tenant_id, full_name, email, password_hash, role)
-       VALUES ($1, $2, $3, $4, 'isp_admin')
+       VALUES ($1, $2, $3, $4, 'admin')
        RETURNING id, tenant_id, full_name, email, role`,
       [tenant.id, fullName, email, passwordHash]
     );

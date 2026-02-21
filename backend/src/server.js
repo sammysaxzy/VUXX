@@ -1,15 +1,19 @@
 import http from "http";
 import dotenv from "dotenv";
 import express from "express";
-import cors from "cors";
 import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
 import customersRoutes from "./routes/customers.js";
-import infraRoutes from "./routes/infra.js";
 import radiusRoutes from "./routes/radius.js";
+import mapRoutes from "./routes/map.js";
+import ticketRoutes from "./routes/tickets.js";
+import dashboardRoutes from "./routes/dashboard.js";
+import logsRoutes from "./routes/logs.js";
 import { requireAuth } from "./middleware/auth.js";
 import { requireTenant } from "./middleware/tenant.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { securityMiddleware } from "./middleware/security.js";
+import { logRequest } from "./middleware/logRequests.js";
 
 dotenv.config();
 
@@ -50,16 +54,20 @@ io.on("connection", (socket) => {
 });
 
 app.set("io", io);
-app.use(cors());
+app.use(...securityMiddleware);
 app.use(express.json({ limit: "1mb" }));
+app.use(logRequest);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "isp-map-crm-backend" });
 });
 
+app.use("/api/dashboard", requireAuth, requireTenant, dashboardRoutes);
+app.use("/api/logs", requireAuth, requireTenant, logsRoutes);
 app.use("/api/customers", requireAuth, requireTenant, customersRoutes);
 app.use("/api/radius", requireAuth, requireTenant, radiusRoutes);
-app.use("/api", requireAuth, requireTenant, infraRoutes);
+app.use("/api/map", requireAuth, requireTenant, mapRoutes);
+app.use("/api/tickets", requireAuth, requireTenant, ticketRoutes);
 
 app.use(errorHandler);
 
