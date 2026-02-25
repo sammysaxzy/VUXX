@@ -3,13 +3,14 @@ import dotenv from "dotenv";
 import express from "express";
 import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
+import authRoutes from "./routes/auth.js";
 import customersRoutes from "./routes/customers.js";
 import radiusRoutes from "./routes/radius.js";
 import mapRoutes from "./routes/map.js";
 import ticketRoutes from "./routes/tickets.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import logsRoutes from "./routes/logs.js";
-import { requireAuth } from "./middleware/auth.js";
+import { authenticateToken } from "./middleware/auth.js";
 import { requireTenant } from "./middleware/tenant.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { securityMiddleware } from "./middleware/security.js";
@@ -62,12 +63,13 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "isp-map-crm-backend" });
 });
 
-app.use("/api/dashboard", requireAuth, requireTenant, dashboardRoutes);
-app.use("/api/logs", requireAuth, requireTenant, logsRoutes);
-app.use("/api/customers", requireAuth, requireTenant, customersRoutes);
-app.use("/api/radius", requireAuth, requireTenant, radiusRoutes);
-app.use("/api/map", requireAuth, requireTenant, mapRoutes);
-app.use("/api/tickets", requireAuth, requireTenant, ticketRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", authenticateToken, requireTenant, dashboardRoutes);
+app.use("/api/logs", authenticateToken, requireTenant, logsRoutes);
+app.use("/api/customers", authenticateToken, requireTenant, customersRoutes);
+app.use("/api/radius", authenticateToken, requireTenant, radiusRoutes);
+app.use("/api/map", authenticateToken, requireTenant, mapRoutes);
+app.use("/api/tickets", authenticateToken, requireTenant, ticketRoutes);
 
 app.use(errorHandler);
 

@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET must be set");
+  throw new Error("JWT_SECRET must be configured");
 }
 
 function httpError(status, message) {
@@ -11,12 +11,12 @@ function httpError(status, message) {
   return error;
 }
 
-export function requireAuth(req, _res, next) {
+export function authenticateToken(req, _res, next) {
   const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
 
   if (!token) {
-    return next(httpError(401, "Missing bearer token"));
+    return next(httpError(401, "Missing authentication token"));
   }
 
   try {
@@ -28,7 +28,7 @@ export function requireAuth(req, _res, next) {
     };
     return next();
   } catch (error) {
-    return next(httpError(401, "Invalid token"));
+    return next(httpError(403, "Invalid authentication token"));
   }
 }
 

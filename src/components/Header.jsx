@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useNocState } from "../context/NocContext.jsx";
 
 const navLinks = [
@@ -11,9 +12,11 @@ const navLinks = [
 
 export default function Header() {
   const { metrics } = useNocState();
+  const { user, logout } = useAuth();
   const overdue = metrics?.overdue ?? 0;
   const offline = metrics?.offline ?? 0;
   const open = metrics?.open ?? 0;
+  const roleLabel = user?.role ? user.role.toUpperCase() : "STAFF";
 
   return (
     <header className="noc-header">
@@ -39,6 +42,14 @@ export default function Header() {
           <span className="pill warn">{offline} offline</span>
           <span className="pill info">{open} open</span>
         </div>
+        {user && (
+          <div className="header-identity">
+            <span className="user-chip">{roleLabel}</span>
+            <button type="button" className="ghost-btn" onClick={logout}>
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

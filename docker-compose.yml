@@ -1,16 +1,50 @@
+version: "3.9"
+
 services:
-  postgres:
-    image: postgres:16
-    container_name: isp-map-crm-db
+  db:
+    image: postgres:16-alpine
+    container_name: fibernoc-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: isp_map_crm
+      POSTGRES_DB: fibernoc
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: fibernoc
+      JWT_SECRET: replace-with-long-secret
+      JWT_EXPIRES_IN: 1h
+      CORS_ORIGINS: http://localhost:5173
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        VITE_API_BASE_URL: http://backend:5000
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
 
 volumes:
   postgres_data:

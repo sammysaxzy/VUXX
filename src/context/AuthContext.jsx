@@ -1,51 +1,64 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { setAuthToken } from "../services/api.js";
 
 const AuthContext = createContext(null);
 
+const STORAGE_TOKEN = "fibernoc_token";
+const STORAGE_USER = "fibernoc_user";
+
+function parseStoredUser(value) {
+  if (!value) {
+    return null;
+  }
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem("authToken"));
-  const [user, setUser] = useState(() => {
-    const serialized = localStorage.getItem("authUser");
-    if (!serialized) return null;
-    try {
-      return JSON.parse(serialized);
-    } catch {
-      return null;
-    }
-  });
+  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_TOKEN));
+  const [user, setUser] = useState(() => parseStoredUser(localStorage.getItem(STORAGE_USER)));
 
   useEffect(() => {
     setAuthToken(token);
-    if (token) {
-      localStorage.setItem("authToken", token);
-    } else {
-      localStorage.removeItem("authToken");
-    }
   }, [token]);
 
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem("authUser", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("authUser");
+  const persistCredentials = useCallback((tokenValue, userValue, remember) => {
+    if (remember) {
+      localStorage.setItem(STORAGE_TOKEN, tokenValue);
+      localStorage.setItem(STORAGE_USER, JSON.stringify(userValue));
+      return;
     }
-  }, [user]);
+    localStorage.removeItem(STORAGE_TOKEN);
+    localStorage.removeItem(STORAGE_USER);
+  }, []);
+
+  const login = useCallback(
+    ({ token: newToken, user: newUser, remember = true }) => {
+      setToken(newToken);
+      setUser(newUser);
+      persistCredentials(newToken, newUser, remember);
+    },
+    [persistCredentials]
+  );
+
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem(STORAGE_TOKEN);
+    localStorage.removeItem(STORAGE_USER);
+  }, []);
 
   const value = useMemo(
     () => ({
       token,
       user,
-      login(payload) {
-        setToken(payload?.token ?? null);
-        setUser(payload?.user ?? null);
-      },
-      logout() {
-        setToken(null);
-        setUser(null);
-      }
+      login,
+      logout
     }),
-    [token, user]
+    [token, user, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

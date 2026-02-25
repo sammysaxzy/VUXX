@@ -15,6 +15,11 @@ export function setAuthToken(token) {
   }
 }
 
+export async function loginToPlatform(payload) {
+  const response = await api.post("/api/auth/login", payload);
+  return response.data;
+}
+
 export async function fetchDashboardMetrics() {
   const response = await api.get("/api/dashboard/metrics");
   return response.data;

@@ -24,6 +24,308 @@ body,
   color: var(--text);
 }
 
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(420px, 1fr);
+  background: radial-gradient(circle at top right, rgba(32, 200, 255, 0.25), transparent 55%),
+    #030712;
+}
+
+.login-panel {
+  padding: 48px 56px;
+  color: #f5f7ff;
+}
+
+.login-panel--brand {
+  background: #0b1220;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 36px;
+  min-height: 100vh;
+}
+
+.login-panel--form {
+  background: #030712;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+  min-height: 100vh;
+}
+
+.login-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--accent-blue);
+}
+
+.login-panel--brand h1 {
+  font-size: clamp(2rem, 3vw, 3rem);
+  line-height: 1.15;
+  margin: 0;
+  font-weight: 700;
+}
+
+.login-subtitle {
+  letter-spacing: 0.45em;
+  font-size: 0.85rem;
+  margin-top: 0;
+  color: var(--text-dim);
+}
+
+.login-description {
+  max-width: 320px;
+  font-size: 0.95rem;
+  color: rgba(239, 244, 255, 0.9);
+  line-height: 1.6;
+}
+
+.login-footer-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  color: rgba(239, 244, 255, 0.7);
+}
+
+.login-card {
+  background: #060b18;
+  border-radius: 32px;
+  padding: 40px 36px;
+  border: 1px solid rgba(32, 200, 255, 0.35);
+  box-shadow: 0 35px 60px rgba(2, 6, 18, 0.8), 0 0 30px rgba(32, 200, 255, 0.18);
+  width: min(460px, 100%);
+  margin: 0 auto;
+}
+
+.login-card__eyebrow {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  margin: 0 0 6px;
+}
+
+.login-card__lead {
+  margin: 0 0 32px;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-error {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(255, 77, 87, 0.1);
+  border: 1px solid rgba(255, 77, 87, 0.3);
+  color: #ff8b92;
+  font-size: 0.9rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.field__label {
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.field__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(32, 200, 255, 0.35);
+  border-radius: 12px;
+  height: 52px;
+  background: rgba(7, 13, 26, 0.75);
+  padding: 0 16px;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field__input-wrapper:focus-within {
+  border-color: rgba(32, 200, 255, 0.8);
+  box-shadow: 0 0 0 3px rgba(32, 200, 255, 0.18);
+}
+
+.field__icon {
+  position: absolute;
+  left: 14px;
+  color: #7aa0c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.field__icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+}
+
+.field__input-wrapper input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #fff;
+  font-size: 1rem;
+  padding: 0 16px 0 40px;
+  font-family: inherit;
+}
+
+.field__error {
+  color: #ff9994;
+  font-size: 0.75rem;
+}
+
+.field--error .field__input-wrapper {
+  border-color: #ff4d57;
+  box-shadow: 0 0 0 2px rgba(255, 77, 87, 0.3);
+}
+
+.login-helpers {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #1e3a8a;
+}
+
+.login-helpers a {
+  color: var(--accent-blue);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.primary-btn {
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #e9f2ff;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35);
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 15px 35px rgba(37, 99, 235, 0.45);
+}
+
+.primary-btn:disabled {
+  cursor: not-allowed;
+  background: #1a1f2f;
+  box-shadow: none;
+}
+
+.login-btn {
+  width: 100%;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+}
+
+.login-btn__text {
+  font-size: 0.85rem;
+}
+
+.login-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid transparent;
+  border-top-color: #cfe6ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.login-meta {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  color: #8c9ac5;
+}
+
+.login-meta span {
+  display: inline-flex;
+  align-items: center;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 960px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .login-panel--brand {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    min-height: auto;
+    padding: 32px;
+  }
+
+  .login-panel--form {
+    border-left: none;
+    min-height: auto;
+    padding: 32px 24px;
+  }
+
+  .login-card {
+    padding: 32px 28px;
+  }
+
+  .login-meta {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
 .module-header {
   display: flex;
   justify-content: space-between;
@@ -84,6 +386,21 @@ body,
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.header-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(32, 200, 255, 0.4);
+  color: var(--accent-blue);
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
 }
 
 .search-input {

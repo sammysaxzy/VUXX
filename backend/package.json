@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "migrate": "node src/runMigrations.js"
+    "migrate": "node src/runMigrations.js",
+    "seed": "node src/seedAdmin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

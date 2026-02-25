@@ -5,9 +5,23 @@ dotenv.config();
 
 const { Pool } = pg;
 
-const connectionString = process.env.DATABASE_URL;
+const {
+  DATABASE_URL,
+  DB_HOST,
+  DB_PORT = "5432",
+  DB_USER,
+  DB_PASS,
+  DB_NAME
+} = process.env;
+
+const connectionString =
+  DATABASE_URL ||
+  (DB_HOST && DB_USER && DB_PASS && DB_NAME
+    ? `postgresql://${encodeURIComponent(DB_USER)}:${encodeURIComponent(DB_PASS)}@${DB_HOST}:${DB_PORT}/${DB_NAME}`
+    : undefined);
+
 if (!connectionString) {
-  throw new Error("DATABASE_URL is not configured");
+  throw new Error("Database configuration is incomplete");
 }
 
 export const pool = new Pool({
