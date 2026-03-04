@@ -1,55 +1,53 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useNocState } from "../context/NocContext.jsx";
 
 const navLinks = [
-  { label: "Map", to: "/dashboard" },
-  { label: "Customers", to: "/customers" },
-  { label: "Tickets", to: "/tickets" },
-  { label: "RADIUS", to: "/radius" },
-  { label: "Reports", to: "/reports" }
+  { label: "Engineering Map", to: "/dashboard" },
+  { label: "Inventory", to: "/customers" },
+  { label: "Reports", to: "/reports" },
+  { label: "Team", to: "/tickets" }
 ];
 
 export default function Header() {
-  const { metrics } = useNocState();
   const { user, logout } = useAuth();
-  const overdue = metrics?.overdue ?? 0;
-  const offline = metrics?.offline ?? 0;
-  const open = metrics?.open ?? 0;
-  const roleLabel = user?.role ? user.role.toUpperCase() : "STAFF";
+  const initials = user?.email?.slice(0, 1)?.toUpperCase() || "U";
 
   return (
-    <header className="noc-header">
-      <div className="logo">FIBRE NOC</div>
-      <nav className="noc-nav">
-        {navLinks.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className={({ isActive }) => (isActive ? "noc-nav-link active" : "noc-nav-link")}
-          >
-            {link.label}
-          </NavLink>
-        ))}
-      </nav>
-      <div className="header-controls">
-        <input className="search-input" placeholder="Search network assets..." />
-        <button type="button" className="icon-button" aria-label="Notifications">
-          🔔
-        </button>
-        <div className="status-chips">
-          <span className="pill danger">{overdue} overdue</span>
-          <span className="pill warn">{offline} offline</span>
-          <span className="pill info">{open} open</span>
+    <header className="fg-topbar">
+      <div className="fg-topbar-left">
+        <div className="fg-brand-mark" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
         </div>
-        {user && (
-          <div className="header-identity">
-            <span className="user-chip">{roleLabel}</span>
-            <button type="button" className="ghost-btn" onClick={logout}>
-              Sign out
-            </button>
-          </div>
-        )}
+        <div className="fg-brand-text">FiberGrid GIS</div>
+        <nav className="fg-nav">
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) => (isActive ? "fg-nav-link active" : "fg-nav-link")}
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+
+      <div className="fg-topbar-right">
+        <label className="fg-search">
+          <span className="fg-search-icon" aria-hidden="true">
+            search
+          </span>
+          <input type="text" placeholder="Search GPS or Asset ID" />
+        </label>
+        <button type="button" className="fg-next-btn">
+          Next: CRM & Radius Management
+        </button>
+        <button type="button" className="fg-avatar" onClick={logout} title="Sign out">
+          {initials}
+        </button>
       </div>
     </header>
   );

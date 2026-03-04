@@ -1,153 +1,167 @@
-# FIBRE NOC OSS/BSS Control Panel
+# ISP Unified Operations Platform (MVP)
 
-FIBRE NOC is an internal telecom operations platform built with a React + Vite frontend and a Node + Express + PostgreSQL backend. The focus is on secure access, tenant-aware dashboards, and a production-grade login entry point that mirrors the provided design spec.
+This repository now ships an MVP for a **unified ISP Operations system** where:
 
-## 📌 Overview
-- Split-screen **dark NOC** themed login experience with a branded left panel and a glowing login card on the right.
-- Real authentication backed by bcrypt-hashed passwords, JWT, role-aware middleware, Helmet, CORS, and rate limiting.
-- Protected dashboards and utilities (`/dashboard`, `/customers`, `/tickets`, `/radius`, `/reports`) that can only be reached once authenticated.
-- Docker Compose orchestrates PostgreSQL, backend API, and a static frontend served via Nginx.
-- Built-in seeding of an admin user (`admin@fibernoc.local` / `Admin123!`) for immediate access.
+- Map infrastructure, fibre routes/cores, MST ports, and client CRM data are linked.
+- Every CRM client has a physical map object (`client_premise`).
+- Client activation creates a real drop-fibre path (`MST -> client`) with core + port allocation.
+- All major actions create audit logs and are broadcast in real time over WebSockets.
 
-## 🧠 Backend Setup
+## Stack
 
-### Prerequisites
-- Node 20+
-- PostgreSQL 16+ (or `docker compose` from this repo)
-- Copy the env template inside `backend`:
-  ```bash
-  cd backend
-  cp .env.example .env
-  # then edit JWT_SECRET, DB_*, and CORS_ORIGINS as needed
-  ```
+- Frontend: `React + Vite`
+- Backend: `Python + FastAPI + WebSockets`
+- Database: `PostgreSQL + PostGIS`
+- Map engines (both in one dashboard):
+  - `Leaflet + OpenStreetMap` (no API key required)
+  - `MapLibre GL` (default style: `https://demotiles.maplibre.org/style.json`)
 
-### Environment variables
-Required values in `backend/.env`:
+## Implemented MVP Scope
 
+### Map / Fibre Ops
+
+- Create assets: MST/FAT/FDB/pole/manhole/OLT/splice closure/client premise.
+- OLT onboarding:
+  - Add OLT with total port count.
+  - Track free/used OLT ports.
+  - Assign selected cable core color to specific OLT ports.
+- Create fibre cables by selecting **start + end assets**.
+  - Auto-generates line geometry.
+  - Optional manual route drawing: click points on map and save custom path.
+  - Auto-calculates distance.
+  - Auto-creates fibre cores with standard colors.
+- View and update core statuses (`free`, `reserved`, `used`, `faulty`).
+- Record splice events with location, engineer, notes.
+- View MST capacity (used/free/reserved/faulty ports).
+- Click MST to inspect legs/ports (e.g., leg 3, leg 7), assigned client, and remaining legs.
+- Click OLT / boxes to inspect incoming/outgoing core colors and splice color transitions.
+
+### CRM + Network Link
+
+- Create CRM clients with router-level fields (PPPoE, VLAN, OLT, PON, ONU, plan, etc.).
+- Activation logic:
+  - Blocked if no MST is selected.
+  - Picks free MST splitter port.
+  - Creates automatic 1-core drop cable.
+  - Assigns drop core and links it to client.
+- Suspend client action.
+- Client map-path endpoint returns MST, upstream cables, drop cable, core color, splitter port.
+
+### Monitoring + Activity
+
+- Push monitoring snapshots (PPPoE state, RX/TX power, uptime).
+- Creates alerts for offline ONU / low optical power / frequent disconnect pattern.
+- Audit logs for infrastructure, CRM, monitoring, and admin actions.
+- WebSocket updates for real-time UI refresh and collision reduction.
+
+### Roles
+
+- `super_admin`
+- `isp_admin`
+- `field_engineer`
+- `noc_viewer`
+
+## Project Layout
+
+- `backend_fastapi/` -> FastAPI + PostGIS backend
+  - `app/main.py`
+  - `app/database.py`
+  - `app/security.py`
+  - `app/schemas.py`
+  - `sql/schema.sql`
+- `src/` -> React frontend MVP console
+  - `src/App.jsx`
+  - `src/components/GoogleMapCanvas.jsx`
+  - `src/components/MapTab.jsx`
+  - `src/components/CrmTab.jsx`
+  - `src/components/MonitoringTab.jsx`
+  - `src/components/ActivityTab.jsx`
+  - `src/services/api.js`
+
+## Environment
+
+Frontend `.env`:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+VITE_MAPLIBRE_STYLE_URL=https://demotiles.maplibre.org/style.json
 ```
-PORT=5000
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASS=postgres
-DB_NAME=fibernoc
-JWT_SECRET=your_long_jwt_secret
-JWT_EXPIRES_IN=1h
+
+Backend env (used by Docker compose already):
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/isp_ops
+JWT_SECRET=replace-with-long-random-secret
+ACCESS_TOKEN_EXPIRE_MINUTES=720
 CORS_ORIGINS=http://localhost:5173
+DEFAULT_ADMIN_EMAIL=admin@isp.local
+DEFAULT_ADMIN_PASSWORD=Admin123!
+DEFAULT_ADMIN_NAME=System Super Admin
 ```
 
-### Commands
-
-```bash
-npm install
-npm run migrate    # builds schema and seeds the admin user
-npm run dev        # runs server with --watch (or npm start for production)
-```
-
-`npm run migrate` loads `backend/sql/schema.sql` (see section below) and automatically seeds the admin user via `backend/src/seedAdmin.js`. If you need to re-run the seed without reapplying migrations, `npm run seed` is available.
-
-### Authentication contract
-- **Endpoint**: `POST /api/auth/login`
-- **Payload**:
-  ```json
-  { "email": "admin@fibernoc.local", "password": "Admin123!" }
-  ```
-- **Response**:
-  ```json
-  {
-    "token": "<jwt-token>",
-    "user": { "id": "...", "email": "...", "role": "admin" }
-  }
-  ```
-- **Headers**: protected routes expect `Authorization: Bearer <token>`.
-- **Middleware**: `authenticateToken` enforces the JWT, returns 403 on invalid tokens, and `requireRole(...)` gates routes by role.
-- **Protected routes**: `/api/dashboard`, `/api/customers`, `/api/logs`, `/api/radius`, `/api/map`, `/api/tickets`.
-
-### Security
-- Password hashing uses `bcryptjs` with 12 rounds.
-- JSON Web Tokens issued via `jsonwebtoken`, expiring in 1 hour (configurable via `JWT_EXPIRES_IN`).
-- `Helmet`, `CORS`, and Express rate limiting (120 reqs/min with standard headers) are applied globally.
-
-## 🎨 Frontend Setup
-
-### Tech stack
-- React + Vite + React Router + Axios + Context API.
-- Global theme defined in `src/styles.css` with custom dark palette and component tokens.
-- Auth flow managed through `src/context/AuthContext.jsx`, which stores JWTs only when the **Remember session** checkbox is checked.
-- Routes are guarded using `src/components/PrivateRoute.jsx` and the protected layout wires `Header`, `NocContext`, and the existing dashboard pages.
-
-### Environment
-Copy the base env:
-
-```bash
-cp .env.example .env
-```
-
-Set `VITE_API_BASE_URL` to point at `http://localhost:5000` in development.
-
-### Commands
-
-```bash
-npm install
-npm run dev      # starts Vite on http://localhost:5173
-npm run build    # produces a production-ready ./dist bundle
-npm run preview  # preview the production build
-```
-
-### Login UX
-- **Split screen**: left brand panel with `FIBRE NOC`, heading `Unified Fiber Operations Platform`, subtitle `SECURE ACCESS PORTAL`, descriptive copy, and footer badges (`NETWORK INTEGRITY: ACTIVE` / `TIER 1 SECURITY PROTOCOL`).
-- **Right panel**: centered card with glowing border, shadow, `Secure Sign In` title, form fields with icons, focus glow, and inline error text.
-- **Submit row**: `Remember session` checkbox + `Forgot password?` link, `SIGN IN TO PLATFORM` button that shows a spinner when loading and disables while submitting.
-- **Page footer**: `Internal System Use Only · v1.0.0-PROD · Security Policy`.
-- **Responsiveness**: desktop split layout stacks into a single column on viewports narrower than 960px.
-- **Error handling**: 401 from backend surfaces a credential error message; other failures show a generic “unable to reach platform” banner.
-
-## 🐳 Docker Compose
-
-The repository ships with a full `docker-compose.yml` that builds:
-
-- `db`: PostgreSQL 16 with a persistent volume.
-- `backend`: builds from `backend/Dockerfile` and reads env variables (JWT secret, DB creds, CORS origins). It listens on port 5000.
-- `frontend`: builds via `docker/frontend.Dockerfile`, passes `VITE_API_BASE_URL=http://backend:5000` at build time, and serves static assets through nginx on port 5173.
-
-### Commands
+## Run with Docker (Recommended)
 
 ```bash
 docker compose up --build
-docker compose run backend npm run migrate   # ensure schema and seed are applied
 ```
 
-### Notes
-- The backend container does **not** auto-run migrations — run them after `db` is healthy.
-- Override `JWT_SECRET` and `CORS_ORIGINS` through Docker environment variables for production.
-- The frontend build stage ingests `VITE_API_BASE_URL` via build args so that axios can target the internal backend service.
+Services:
 
-## 🧾 Database schema
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8000`
+- DB: `localhost:5432`
 
-- Location: `backend/sql/schema.sql`.
-- Extension: `pgcrypto` for UUID generation.
-- Tables:
-  - `tenants` & `users` (multi-tenant users, roles: `admin | engineer | noc`).
-  - `nodes`, `mst`, `fiber_routes`, `customers`, `radius_sessions`, `tickets`, `logs`.
-- The seeded admin user uses tenant slug `fibernoc` and password hash stored via bcrypt.
+## Run Locally (Without Docker)
 
-## 🔐 Authentication flow
+### Backend
 
-1. Login page POSTs credentials to `/api/auth/login`.
-2. Backend verifies the hashed password, issues a JWT with `{ sub, role, tenantId }`, and returns the token plus user metadata.
-3. `AuthContext` stores the token in memory and only persists it in `localStorage` when “Remember session” is checked.
-4. All protected API calls use the Axios `Authorization` header set by `AuthContext`.
-5. `PrivateRoute` checks `useAuth().user` for guarding React routes, while backend middleware enforces the JWT and role constraints.
+```bash
+cd backend_fastapi
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+set DATABASE_URL=postgresql://postgres:postgres@localhost:5432/isp_ops
+set JWT_SECRET=replace-with-long-random-secret
+uvicorn app.main:app --reload --port 8000
+```
 
-## 🧪 Testing the flow
+### Frontend
 
-- Default credentials: `admin@fibernoc.local` / `Admin123!`.
-- After login, you land on `/dashboard`; navigating to `/customers`, `/tickets`, `/radius`, or `/reports` is blocked until authenticated.
-- Unauthenticated access is redirected to `/login`.
-- 401 responses show credential errors in the login card; 500+ responses show a generic connection message.
+```bash
+npm install
+npm run dev
+```
 
-## ✅ Next steps
+## Default Login
 
-1. Swap `JWT_SECRET`, `DB_*`, and `VITE_API_BASE_URL` with environment-specific values before production.
-2. Run `npm run build` and serve the `dist` output via the provided Docker setup or your preferred static hosting.
-3. Add additional role-based guards via `requireRole` to limit features per user role (admin, engineer, noc).
+- Email: `admin@isp.local`
+- Password: `Admin123!`
+
+## API Highlights
+
+- `POST /api/auth/login`
+- `GET /api/bootstrap`
+- `POST /api/map/assets`
+- `POST /api/map/cables`
+- `GET /api/map/cables/{cable_id}/cores`
+- `PATCH /api/map/cores/{core_id}`
+- `POST /api/map/splices`
+- `POST /api/crm/clients`
+- `POST /api/crm/clients/{client_id}/activate`
+- `POST /api/crm/clients/{client_id}/suspend`
+- `GET /api/crm/clients/{client_id}/map-path`
+- `POST /api/monitoring/clients/{client_id}`
+- `GET /api/monitoring/alerts`
+- `GET /api/activity/logs`
+- `GET /api/activity/splices`
+- `POST /api/admin/users`
+- `WS /ws/updates?token=<jwt>`
+
+## Notes
+
+- Existing legacy Node backend files remain in the repo, but MVP runtime is now based on `backend_fastapi`.
+- In the map toolbar you can switch between:
+  - `Leaflet + OSM`
+  - `MapLibre GL`
+- You can paste any MapLibre style URL directly from the dashboard input.
+- The frontend auto-refreshes data when WebSocket events arrive.

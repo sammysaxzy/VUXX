@@ -2,44 +2,47 @@ version: "3.9"
 
 services:
   db:
-    image: postgres:16-alpine
-    container_name: fibernoc-db
+    image: postgis/postgis:16-3.4
+    container_name: isp-ops-postgis
     restart: unless-stopped
     environment:
-      POSTGRES_DB: fibernoc
+      POSTGRES_DB: isp_ops
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgis_data:/var/lib/postgresql/data
 
   backend:
     build:
-      context: ./backend
+      context: ./backend_fastapi
       dockerfile: Dockerfile
+    container_name: isp-ops-backend
     restart: unless-stopped
     depends_on:
       - db
-    ports:
-      - "5000:5000"
     environment:
-      PORT: 5000
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASS: postgres
-      DB_NAME: fibernoc
-      JWT_SECRET: replace-with-long-secret
-      JWT_EXPIRES_IN: 1h
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/isp_ops
+      JWT_SECRET: replace-with-long-random-secret
+      ACCESS_TOKEN_EXPIRE_MINUTES: 720
       CORS_ORIGINS: http://localhost:5173
+      DEFAULT_ADMIN_EMAIL: admin@isp.local
+      DEFAULT_ADMIN_PASSWORD: Admin123!
+      DEFAULT_ADMIN_NAME: System Super Admin
+    ports:
+      - "8000:8000"
 
   frontend:
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
       args:
-        VITE_API_BASE_URL: http://backend:5000
+        VITE_API_BASE_URL: http://backend:8000
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY}
+        VITE_GOOGLE_MAPS_MAP_ID: ${VITE_GOOGLE_MAPS_MAP_ID}
+        VITE_MAPLIBRE_STYLE_URL: ${VITE_MAPLIBRE_STYLE_URL}
+    container_name: isp-ops-frontend
     restart: unless-stopped
     depends_on:
       - backend
@@ -47,4 +50,4 @@ services:
       - "5173:80"
 
 volumes:
-  postgres_data:
+  postgis_data:

@@ -1,0 +1,28 @@
+[33mcommit 998eb18499842792020af0af9517c2df604e2ff1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: bluuwave <bluutony1@gmail.com>
+Date:   Wed Feb 25 15:15:54 2026 +0100
+
+    vuxx update on login page
+
+M	.env.example
+M	README.md
+M	backend/.env.example
+A	backend/Dockerfile
+M	backend/package.json
+M	backend/src/config/db.js
+A	backend/src/controllers/authController.js
+M	backend/src/middleware/auth.js
+M	backend/src/routes/auth.js
+M	backend/src/runMigrations.js
+A	backend/src/seedAdmin.js
+M	backend/src/server.js
+M	docker-compose.yml
+A	docker/frontend.Dockerfile
+M	src/App.jsx
+M	src/components/Header.jsx
+A	src/components/PrivateRoute.jsx
+A	src/components/ProtectedLayout.jsx
+M	src/context/AuthContext.jsx
+A	src/pages/Login.jsx
+M	src/services/api.js
+M	src/styles.css

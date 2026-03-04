@@ -1,51 +1,133 @@
-import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip } from "react-leaflet";
+import { useState } from "react";
+import { CircleMarker, MapContainer, Polyline, TileLayer, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-const NODE_COLORS = {
-  olt: "#20c8ff",
-  mst: "#ffb342",
-  client: "#21d07a",
-  suspended: "#ff4d57"
-};
+const MAP_CENTER = [34.0522, -118.2437];
+const TRUNK = [
+  [34.0527, -118.2472],
+  [34.05255, -118.2457],
+  [34.05245, -118.2443],
+  [34.05242, -118.2424],
+  [34.0525, -118.2409]
+];
+const MST = [34.05242, -118.2424];
+const SPLITTER = [34.05155, -118.2422];
+const CLIENT = [34.0511, -118.2415];
+const NORTH_BRANCH = [34.0532, -118.2408];
 
-function nodeColor(node) {
-  if (node.type === "client") {
-    return node.status === "active" ? NODE_COLORS.client : NODE_COLORS.suspended;
-  }
-  return NODE_COLORS[node.type] ?? NODE_COLORS.mst;
+function CursorTracker({ onChange }) {
+  useMapEvents({
+    mousemove(event) {
+      onChange(event.latlng);
+    },
+    moveend(event) {
+      onChange(event.target.getCenter());
+    }
+  });
+  return null;
 }
 
-export default function MapPanel({ nodes = [], fiberRoutes = [] }) {
-  const mapCenter = nodes.length ? [nodes[0].latitude, nodes[0].longitude] : [6.63, 3.36];
+function formatCoordinate(value, positive, negative) {
+  return {
+    amount: `${Math.abs(value).toFixed(6)}°`,
+    direction: value >= 0 ? positive : negative
+  };
+}
+
+export default function MapPanel() {
+  const [map, setMap] = useState(null);
+  const [coords, setCoords] = useState({ lat: MAP_CENTER[0], lng: MAP_CENTER[1] });
+  const [satelliteMode, setSatelliteMode] = useState(true);
+
+  const lat = formatCoordinate(coords.lat, "N", "S");
+  const lng = formatCoordinate(coords.lng, "E", "W");
+
+  const tileUrl = satelliteMode
+    ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+  const handleLocate = () => {
+    if (!navigator.geolocation || !map) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords: current }) => {
+        map.flyTo([current.latitude, current.longitude], 18, { duration: 0.8 });
+        setCoords({ lat: current.latitude, lng: current.longitude });
+      },
+      () => {}
+    );
+  };
 
   return (
-    <section className="map-panel">
-      <MapContainer center={mapCenter} zoom={13} className="noc-map">
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/">OSM</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    <section className="fg-map-wrap">
+      <MapContainer
+        center={MAP_CENTER}
+        zoom={18}
+        className="fg-map"
+        zoomControl={false}
+        attributionControl={false}
+        whenCreated={setMap}
+      >
+        <TileLayer url={tileUrl} />
+        <Polyline positions={TRUNK} pathOptions={{ color: "#1f6fff", weight: 4, opacity: 0.9, dashArray: "8 8" }} />
+        <Polyline positions={[MST, SPLITTER]} pathOptions={{ color: "#1f6fff", weight: 2.5, opacity: 0.95 }} />
+        <Polyline
+          positions={[SPLITTER, CLIENT]}
+          pathOptions={{ color: "#60a5fa", weight: 2, opacity: 0.9, dashArray: "5 6" }}
         />
-        {fiberRoutes.map((route) => {
-          const path = (route.path?.coordinates || []).map(([lng, lat]) => [lat, lng]);
-          if (!path.length) return null;
-          return (
-            <Polyline key={route.id} positions={path} pathOptions={{ color: "#33f1a8", weight: 4, opacity: 0.8 }} />
-          );
-        })}
-        {nodes.map((node) => (
-          <CircleMarker
-            key={node.id}
-            center={[node.latitude, node.longitude]}
-            radius={node.type === "olt" ? 10 : 6}
-            pathOptions={{ color: nodeColor(node), fillColor: nodeColor(node), fillOpacity: 0.7, weight: 1.5 }}
-          >
-            <Tooltip direction="top">{node.name}</Tooltip>
-          </CircleMarker>
-        ))}
+        <Polyline positions={[TRUNK[4], NORTH_BRANCH]} pathOptions={{ color: "#1f6fff", weight: 2, opacity: 0.8 }} />
+        <CircleMarker center={MST} radius={6} pathOptions={{ color: "#1f6fff", fillColor: "#1f6fff", fillOpacity: 1 }} />
+        <CircleMarker
+          center={SPLITTER}
+          radius={5}
+          pathOptions={{ color: "#1f6fff", fillColor: "#1f6fff", fillOpacity: 0.95 }}
+        />
+        <CircleMarker
+          center={CLIENT}
+          radius={4}
+          pathOptions={{ color: "#60a5fa", fillColor: "#60a5fa", fillOpacity: 1 }}
+        />
+        <CursorTracker onChange={(point) => setCoords({ lat: point.lat, lng: point.lng })} />
       </MapContainer>
-      <div className="alarm-card">
-        <strong>Critical alarm</strong>
-        <p>OLT-A uplink latency elevated • <span>15m ago</span></p>
+
+      <div className="fg-map-vignette"></div>
+      <div className="fg-map-grid"></div>
+
+      <div className="fg-building one"></div>
+      <div className="fg-building two"></div>
+      <div className="fg-building three"></div>
+
+      <div className="fg-map-tag mst">MST-042 (8P)</div>
+      <div className="fg-map-tag client">Client End (John Doe)</div>
+
+      <div className="fg-map-controls">
+        <div className="fg-zoom-box">
+          <button type="button" onClick={() => map?.zoomIn()}>
+            +
+          </button>
+          <button type="button" onClick={() => map?.zoomOut()}>
+            -
+          </button>
+        </div>
+        <button type="button" onClick={handleLocate}>
+          LOC
+        </button>
+        <button type="button" onClick={() => setSatelliteMode((value) => !value)}>
+          LYR
+        </button>
+      </div>
+
+      <div className="fg-coordinate-card">
+        <div>
+          <small>LATITUDE</small>
+          <strong>{lat.amount}</strong>
+          <span>{lat.direction}</span>
+        </div>
+        <i></i>
+        <div>
+          <small>LONGITUDE</small>
+          <strong>{lng.amount}</strong>
+          <span>{lng.direction}</span>
+        </div>
       </div>
     </section>
   );

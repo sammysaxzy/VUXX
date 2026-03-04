@@ -76,6 +76,20 @@ export default function LoginPage() {
     }
   };
 
+  const handleDemoLogin = () => {
+    setServerError("");
+    login({
+      token: "demo-token",
+      user: {
+        id: "demo-user",
+        email: "demo@local",
+        role: "admin"
+      },
+      remember: form.remember
+    });
+    navigate(destination, { replace: true });
+  };
+
   return (
     <div className="login-page">
       <section className="login-panel login-panel--brand">
@@ -153,6 +167,10 @@ export default function LoginPage() {
                 {loading ? "Signing in..." : "SIGN IN TO PLATFORM"}
               </span>
               {loading && <span className="login-spinner" aria-hidden="true"></span>}
+            </button>
+
+            <button type="button" className="login-demo-btn" onClick={handleDemoLogin} disabled={loading}>
+              USE DEMO LOGIN (NO BACKEND)
             </button>
           </form>
         </div>
